@@ -1,16 +1,16 @@
 key=""
-documento = "file.pdf"
+documento = "fileProva.pdf"
 
 from openai import OpenAI #importo libreria OpenAI
 
 client = OpenAI(api_key=key)
 
 
-def creaAssistente(): #1- creo l'assistente
+def creaAssistente( doc ): #1- creo l'assistente
 
   #Creo il file
   file = client.files.create(
-    file=open(documento, "rb"),  #do il file in input
+    file=open(doc, "rb"),  #do il file in input
     purpose='assistants'
   )
 
@@ -70,7 +70,7 @@ def getRisposta(thread, run):
 
 
 #PROGRAMMA
-file, assistente = creaAssistente()
+file, assistente = creaAssistente(documento)
 thread, objRun = eseguiAssistente(file.id, assistente.id)
 messaggio = getRisposta(thread, objRun)
 print(messaggio) #stampo il messaggio
