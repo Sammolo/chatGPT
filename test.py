@@ -1,53 +1,76 @@
 key=""
+documento = "file.pdf"
 
 from openai import OpenAI #importo libreria OpenAI
 
 client = OpenAI(api_key=key)
 
-#L'assistente si divide in 4 parti
-#1- creo l'assistente
-#NB: l'assistente prende 4 parametri che saranno fondamentali per la risposta che darà
-assistant = client.beta.assistants.create(
+
+def creaAssistente(): #1- creo l'assistente
+
+  #Creo il file
+  file = client.files.create(
+    file=open(documento, "rb"),  #do il file in input
+    purpose='assistants'
+  )
+
+  #Creo l'assistente  
+  assistant = client.beta.assistants.create(
     name="Primo assistente di test", #ignorabile
-    instructions="You are a data analyst. From a file draw a graphic", #qui specifico come l'assistente dovrebbe comportarsi o rispondere
-    model="gpt-4-32k-0314", #specifico quale gpt usare
-    tools=[{"type": "retrieval"}] #modalità per prendere file come input
-)
+    instructions="Analizza il file e fornisci risposte basandoti sul file stesso, citando frasi del file stesso se possibile", #qui specifico come l'assistente dovrebbe comportarsi o rispondere
+    tools=[{"type": "retrieval"}], #modalità per prendere file come input
+    model="gpt-3.5-turbo-1106", #specifico quale gpt usare 
+    file_ids=[file.id] #assegno il file da elaborare
+  )
+
+  return file, assistant
 
 
-#2- creo il tread quando l'utente inizia la conversazione
-thread = client.beta.threads.create()
+def eseguiAssistente(idFile, idAssistente):
 
-#3- aggiungo la domanda dell'utente come messaggio al tread
-message = client.beta.threads.messages.create(
-    thread_id=thread.id,
-    role="user",
-    content=input("Scrivi la domanda che vuoi fare all'assistente riguardo il file che hai caricato /n")
-)
+  domanda = str(input("\nCosa vuoi chiedere? \n")) #faccio scrivere all'utente la domanda da fare
+
+  thread = client.beta.threads.create( #2- creo il thread per la conversazione
+    #creo il messaggio
+    messages = [
+      {
+        "role": "user",
+        "content": domanda,
+        "file_ids": [idFile]
+      }
+    ]
+  )
+
+  run = client.beta.threads.runs.create( #3- eseguo il thread
+    thread_id= thread.id,
+    assistant_id= idAssistente
+  )
+
+  return thread, run
+
+def getRisposta(thread, run):
+  while(run.status != "completed"): #FONDAMENTALE
+    run = client.beta.threads.runs.retrieve(
+      thread_id = thread.id,
+      run_id = run.id
+    )
+  
+  messages = client.beta.threads.messages.list(
+    thread_id = thread.id
+  )
+
+  contenutoMessaggio = messages.data[0].content[0].text.value
+
+  return contenutoMessaggio
 
 
-#4- faccio eseguire l'assistente sul tread per avere la risposta alla domanda
-#NB: per questo specifico assistente creo anche il codice per inserire il file che poi andrà ad analizzare
-file = client.files.create(
-  file=open("fileProva.pdf", "rb"),
-  purpose='assistants'
-)
-
-run = client.beta.threads.runs.create( #assegno l'assistente al tread
-  thread_id=thread.id,
-  assistant_id=assistant.id
-)
-
-#eseguo
-run = client.beta.threads.runs.retrieve(
-  thread_id=thread.id,
-  run_id=run.id
-)
-
-messages = client.beta.threads.messages.list(
-  thread_id=thread.id
-)
 
 
 
-#print(completion.choices[0].message)
+
+
+#PROGRAMMA
+file, assistente = creaAssistente()
+thread, objRun = eseguiAssistente(file.id, assistente.id)
+messaggio = getRisposta(thread, objRun)
+print(messaggio) #stampo il messaggio
