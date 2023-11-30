@@ -25,10 +25,8 @@ def creaAssistente( doc ): #1- creo l'assistente
 
   return file, assistant
 
-
-def eseguiAssistente(idFile, idAssistente):
-
-  domanda = str(input("\nCosa vuoi chiedere? \n")) #faccio scrivere all'utente la domanda da fare
+#assegno la domanda alla chat
+def eseguiAssistente(idFile, idAssistente, domanda):
 
   thread = client.beta.threads.create( #2- creo il thread per la conversazione
     #creo il messaggio
@@ -48,6 +46,7 @@ def eseguiAssistente(idFile, idAssistente):
 
   return thread, run
 
+#ottengo la risposta alla domanda
 def getRisposta(thread, run):
   while(run.status != "completed"): #FONDAMENTALE
     run = client.beta.threads.runs.retrieve(
@@ -63,14 +62,23 @@ def getRisposta(thread, run):
 
   return contenutoMessaggio
 
+#interagisco più volte con l'assistente
+def chatta(idFile, idAssistente):
 
-
-
+  print("Sto analizzando il file...")
+  while(True):
+    domanda = input("\n Scrivi la domanda a cui vuoi che io risponda o digita 'esci' per fermarti\n")
+    if(domanda == "esci"):
+      break
+    else:
+      thread, objRun = eseguiAssistente(idFile, idAssistente, domanda)
+      messaggio = getRisposta(thread, objRun)
+      print(messaggio) #stampo il messaggio
+  
+  print("\n Alla prossima!")
 
 
 
 #PROGRAMMA
-file, assistente = creaAssistente(documento)
-thread, objRun = eseguiAssistente(file.id, assistente.id)
-messaggio = getRisposta(thread, objRun)
-print(messaggio) #stampo il messaggio
+file, assistente = creaAssistente(documento) #creo l'assistente
+chatta(file.id, assistente.id)
