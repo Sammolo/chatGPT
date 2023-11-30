@@ -25,26 +25,32 @@ def creaAssistente( doc ): #1- creo l'assistente
 
   return file, assistant
 
-#assegno la domanda alla chat
-def eseguiAssistente(idFile, idAssistente, domanda):
-
+#creo il thread
+def creaThread(idFile):
   thread = client.beta.threads.create( #2- creo il thread per la conversazione
-    #creo il messaggio
-    messages = [
-      {
-        "role": "user",
-        "content": domanda,
-        "file_ids": [idFile]
-      }
-    ]
-  )
+      #creo il messaggio
+      messages = [
+        {
+          "role": "user",
+          "content": "",
+          "file_ids": [idFile]
+        }
+      ]
+    )
+  
+  return thread
+
+#assegno la domanda alla chat
+def eseguiAssistente(thread, idAssistente, domanda):
+
+  thread.content = domanda #assegno la domanda al thread
 
   run = client.beta.threads.runs.create( #3- eseguo il thread
     thread_id= thread.id,
     assistant_id= idAssistente
   )
 
-  return thread, run
+  return run
 
 #ottengo la risposta alla domanda
 def getRisposta(thread, run):
@@ -63,22 +69,24 @@ def getRisposta(thread, run):
   return contenutoMessaggio
 
 #interagisco più volte con l'assistente
-def chatta(idFile, idAssistente):
+def chatta(thread, idAssistente):
 
-  print("Sto analizzando il file...")
   while(True):
-    domanda = input("\n Scrivi la domanda a cui vuoi che io risponda o digita 'esci' per fermarti\n")
+    print("\n------------------")
+    domanda = input("Scrivi la domanda a cui vuoi che io risponda o digita 'esci' per fermarti\n")
     if(domanda == "esci"):
       break
     else:
-      thread, objRun = eseguiAssistente(idFile, idAssistente, domanda)
+      objRun = eseguiAssistente(thread, idAssistente, domanda)
       messaggio = getRisposta(thread, objRun)
       print(messaggio) #stampo il messaggio
   
-  print("\n Alla prossima!")
+  print("\nAlla prossima!")
 
 
 
 #PROGRAMMA
+print("Sto analizzando il file...")
 file, assistente = creaAssistente(documento) #creo l'assistente
-chatta(file.id, assistente.id)
+thread = creaThread(file.id)
+chatta(thread, assistente.id)
